@@ -6,34 +6,27 @@ import base64
 import tempfile
 import logging
 from typing import List, Dict, Any
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+import torch
+import uvicorn
+
+# Patch torch.load to default to weights_only=False to support PyTorch 2.6+ loading for YOLO models
+original_load = torch.load
+def patched_load(*args, **kwargs):
+    if 'weights_only' not in kwargs:
+        kwargs['weights_only'] = False
+    return original_load(*args, **kwargs)
+torch.load = patched_load
+
 from ultralytics import YOLO
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("YOLOv8-API")
-
-app = FastAPI(
-    title="YOLOv8 Object Detection API",
-    description="A FastAPI backend serving YOLOv8n object detection on images and videos",
-    version="1.0.0"
-)
-
-# Enable CORS for local development
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Path for saving static files
-STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
-os.makedirs(STATIC_DIR, exist_ok=True)
 
 # Lazy loading of YOLO model
 model = None
@@ -51,10 +44,32 @@ def get_model():
             raise RuntimeError(f"Could not load YOLO model: {str(e)}")
     return model
 
-# Setup lifespan or load model on startup
-@app.on_event("startup")
-def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     get_model()
+    yield
+    global model
+    model = None
+
+app = FastAPI(
+    title="YOLOv8 Object Detection API",
+    description="A FastAPI backend serving YOLOv8n object detection on images and videos",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# Enable CORS for local development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Path for saving static files
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+os.makedirs(STATIC_DIR, exist_ok=True)
 
 @app.get("/health")
 def health_check():
