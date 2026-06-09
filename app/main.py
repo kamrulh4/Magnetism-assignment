@@ -5,6 +5,12 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
+import sys
+from pathlib import Path
+
+# Add project root to sys.path to allow running this file directly
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
 # Triggers configuration loading, folders creation, and PyTorch patch
 from app.core.config import get_model, STATIC_DIR, logger
 from app.api.endpoints import router as api_router
