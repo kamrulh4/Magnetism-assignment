@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  vision-ai:
+    build: .
+    container_name: vision-ai-app
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
