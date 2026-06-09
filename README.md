@@ -44,6 +44,32 @@ A premium, production-ready AI-integrated web application that performs object d
 
 ---
 
+## 📁 Project Structure
+
+```
+Magnetism-assignment/
+├── app/
+│   ├── __init__.py
+│   ├── main.py            # FastAPI startup & entrypoint
+│   ├── core/
+│   │   ├── __init__.py
+│   │   └── config.py      # Config, lazy model loader & PyTorch patch
+│   ├── api/
+│   │   ├── __init__.py
+│   │   └── endpoints.py   # API routes (/detect-image, /detect-video)
+│   └── services/
+│       ├── __init__.py
+│       └── yolo.py        # Core YOLOv8 inference & drawing services
+├── static/                # UI frontend assets (HTML, CSS, JS)
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+├── test_main.py
+└── README.md
+```
+
+---
+
 ## ⚙️ Setup and Installation
 
 ### Option 1: Standard Local Setup (Python virtual environment)
@@ -69,7 +95,7 @@ Ensure you have Python 3.9+ installed on your system.
 
 4. **Launch the FastAPI application**:
    ```bash
-   python3 main.py
+   python3 app/main.py
    ```
    The application will start on **`http://127.0.0.1:8000`**.
 
