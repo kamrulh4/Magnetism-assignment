@@ -10,6 +10,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
+    libgl1 \
+    libglib2.0-0 \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create virtual environment
@@ -22,7 +25,20 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Pre-download YOLOv8n weights to package them inside the builder stage
-RUN python -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
+RUN python - <<'PY'
+import torch
+from ultralytics import YOLO
+
+original_load = torch.load
+
+def patched_load(*args, **kwargs):
+    if 'weights_only' not in kwargs:
+        kwargs['weights_only'] = False
+    return original_load(*args, **kwargs)
+
+torch.load = patched_load
+YOLO('yolov8n.pt')
+PY
 
 
 # Stage 2: Final runner image
@@ -38,6 +54,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libgomp1 \
+    libgl1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy virtual environment from builder stage
